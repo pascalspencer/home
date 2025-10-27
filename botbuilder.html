@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bot Builder - DerivTrade Pro</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vanta/0.5.24/vanta.net.min.js"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        'sans': ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        'primary': '#2563eb',
+                        'secondary': '#1e40af',
+                        'accent': '#3b82f6',
+                        'dark': '#0f172a',
+                        'light': '#f8fafc',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        .gradient-text {
+            background: linear-gradient(135deg, #2563eb, #3b82f6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .glass-effect {
+            backdrop-filter: blur(10px);
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        .bot-node {
+            cursor: move;
+            transition: all 0.2s ease;
+        }
+        .bot-node:hover {
+            transform: scale(1.05);
+        }
+        .connection-line {
+            stroke: #2563eb;
+            stroke-width: 2;
+            fill: none;
+            marker-end: url(#arrowhead);
+        }
+        .strategy-canvas {
+            background-image: radial-gradient(circle, #e5e7eb 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 font-sans">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2">
+                        <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                            <i class="fas fa-chart-line text-white text-sm"></i>
+                        </div>
+                        <span class="text-xl font-bold gradient-text">DerivTrade Pro</span>
+                    </div>
+                </div>
+                
+                <div class="hidden md:flex items-center space-x-8">
+                    <a href="index.html" class="text-gray-700 hover:text-primary transition-colors font-medium">Dashboard</a>
+                    <a href="#" class="text-primary font-medium">Bot Builder</a>
+                    <a href="tutorials.html" class="text-gray-700 hover:text-primary transition-colors font-medium">Tutorials</a>
+                    <a href="strategies.html" class="text-gray-700 hover:text-primary transition-colors font-medium">Strategies</a>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <button class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
+                        <i class="fas fa-save mr-2"></i>Save Bot
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Bot Builder Interface -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <!-- Header -->
+        <div class="mb-6">
+            <h1 class="text-3xl font-bold text-gray-900 mb-2">Bot Builder</h1>
+            <p class="text-gray-600">Create custom trading strategies with our visual bot builder. Drag and drop components to build your automated trading system.</p>
+        </div>
+
+        <!-- Builder Layout -->
+        <div class="grid grid-cols-1 lg:grid-cols-4 gap-6 h-screen">
+            <!-- Component Palette -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-palette text-primary mr-2"></i>Components
+                    </h3>
+                    
+                    <div class="space-y-3">
+                        <!-- Market Data -->
+                        <div class="component-category">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">Market Data</h4>
+                            <div class="space-y-2">
+                                <div class="bot-node bg-blue-100 border-2 border-blue-300 rounded-lg p-3 cursor-move" 
+                                     draggable="true" data-type="price-feed">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-chart-line text-blue-600"></i>
+                                        <span class="text-sm font-medium">Price Feed</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="bot-node bg-green-100 border-2 border-green-300 rounded-lg p-3 cursor-move" 
+                                     draggable="true" data-type="volume-indicator">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-chart-bar text-green-600"></i>
+                                        <span class="text-sm font-medium">Volume Indicator</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="bot-node bg-purple-100 border-2 border-purple-300 rounded-lg p-3 cursor-move" 
+                                     draggable="true" data-type="market-trend">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-trending-up text-purple-600"></i>
+                                        <span class="text-sm font-medium">Market Trend</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Technical Indicators -->
+                        <div class="component-category">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">Technical Indicators</h4>
+                            <div class="space-y-2">
+                                <div class="bot-node bg-yellow-100 border-2 border-yellow-300 rounded-lg p-3 cursor-move" 
+                                     draggable="true" data-type="rsi">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-wave-square text-yellow-600"></i>
+                                        <span class="text-sm font-medium">RSI</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="bot-node bg-red-100 border-2 border-red-300 rounded-lg p-3 cursor-move" 
+                                     draggable="true" data-type="macd">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-wave-square text-red-600"></i>
+                                        <span class="text-sm font-medium">MACD</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="bot-node bg-indigo-100 border-2 border-indigo-300 rounded-lg p-3 cursor-move" 
+                                     draggable="true" data-type="bollinger-bands">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-wave-square text-indigo-600"></i>
+                                        <span class="text-sm font-medium">Bollinger Bands</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="bot-node bg-pink-100 border-2 border-pink-300 rounded-lg p-3 cursor-move" 
+                                     draggable="true" data-type="stochastic">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-wave-square text-pink-600"></i>
+                                        <span class="text-sm font-medium">Stochastic</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Logic & Conditions -->
+                        <div class="component-category">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">Logic & Conditions</h4>
+                            <div class="space-y-2">
+                                <div class="bot-node bg-gray-100 border-2 border-gray-300 rounded-lg p-3 cursor-move" 
+                                     draggable="true" data-type="if-condition">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-code-branch text-gray-600"></i>
+                                        <span class="text-sm font-medium">If Condition</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="bot-node bg-orange-100 border-2 border-orange-300 rounded-lg p-3 cursor-move" 
+                                     draggable="true" data-type="comparison">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-equals text-orange-600"></i>
+                                        <span class="text-sm font-medium">Comparison</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="bot-node bg-teal-100 border-2 border-teal-300 rounded-lg p-3 cursor-move" 
+                                     draggable="true" data-type="logical-and">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-and text-teal-600"></i>
+                                        <span class="text-sm font-medium">AND Gate</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Actions -->
+                        <div class="component-category">
+                            <h4 class="text-sm font-medium text-gray-700 mb-2">Actions</h4>
+                            <div class="space-y-2">
+                                <div class="bot-node bg-green-100 border-2 border-green-300 rounded-lg p-3 cursor-move" 
+                                     draggable="true" data-type="buy-action">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-arrow-up text-green-600"></i>
+                                        <span class="text-sm font-medium">Buy Action</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="bot-node bg-red-100 border-2 border-red-300 rounded-lg p-3 cursor-move" 
+                                     draggable="true" data-type="sell-action">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-arrow-down text-red-600"></i>
+                                        <span class="text-sm font-medium">Sell Action</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="bot-node bg-blue-100 border-2 border-blue-300 rounded-lg p-3 cursor-move" 
+                                     draggable="true" data-type="stop-loss">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-shield-alt text-blue-600"></i>
+                                        <span class="text-sm font-medium">Stop Loss</span>
+                                    </div>
+                                </div>
+                                
+                                <div class="bot-node bg-purple-100 border-2 border-purple-300 rounded-lg p-3 cursor-move" 
+                                     draggable="true" data-type="take-profit">
+                                    <div class="flex items-center space-x-2">
+                                        <i class="fas fa-target text-purple-600"></i>
+                                        <span class="text-sm font-medium">Take Profit</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Strategy Canvas -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 h-full">
+                    <div class="p-4 border-b border-gray-200">
+                        <div class="flex items-center justify-between">
+                            <h3 class="text-lg font-semibold text-gray-900 flex items-center">
+                                <i class="fas fa-project-diagram text-green-500 mr-2"></i>Strategy Canvas
+                            </h3>
+                            <div class="flex items-center space-x-2">
+                                <button class="px-3 py-1 bg-gray-100 text-gray-700 rounded text-sm hover:bg-gray-200">
+                                    <i class="fas fa-undo mr-1"></i>Clear
+                                </button>
+                                <button class="px-3 py-1 bg-primary text-white rounded text-sm hover:bg-secondary">
+                                    <i class="fas fa-play mr-1"></i>Test
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="strategyCanvas" class="strategy-canvas h-full p-4 relative overflow-auto">
+                        <svg id="connectionSvg" class="absolute inset-0 w-full h-full pointer-events-none" style="z-index: 1;">
+                            <defs>
+                                <marker id="arrowhead" markerWidth="10" markerHeight="7" 
+                                        refX="9" refY="3.5" orient="auto">
+                                    <polygon points="0 0, 10 3.5, 0 7" fill="#2563eb" />
+                                </marker>
+                            </defs>
+                        </svg>
+                        
+                        <!-- Welcome Message -->
+                        <div id="welcomeMessage" class="absolute inset-0 flex items-center justify-center">
+                            <div class="text-center text-gray-500">
+                                <i class="fas fa-mouse-pointer text-4xl mb-4"></i>
+                                <p class="text-lg font-medium">Drag components from the left panel to start building your strategy</p>
+                                <p class="text-sm mt-2">Connect nodes to create your trading logic</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Properties Panel -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4 flex items-center">
+                        <i class="fas fa-cog text-orange-500 mr-2"></i>Properties
+                    </h3>
+                    
+                    <div id="propertiesPanel">
+                        <div class="text-center text-gray-500 py-8">
+                            <i class="fas fa-cog text-3xl mb-2"></i>
+                            <p class="text-sm">Select a component to view its properties</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bot Templates -->
+        <div class="mt-8">
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">Strategy Templates</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 card-hover">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-chart-line text-blue-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">RSI Strategy</h3>
+                            <p class="text-sm text-gray-500">Momentum-based trading</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 mb-4">Uses RSI indicator to identify overbought and oversold conditions for entry signals.</p>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-500">Win Rate: 68%</span>
+                        <button class="bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-secondary">
+                            Use Template
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 card-hover">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-wave-square text-green-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">MACD Crossover</h3>
+                            <p class="text-sm text-gray-500">Trend-following strategy</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 mb-4">Detects trend changes using MACD line crossovers for buy/sell signals.</p>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-500">Win Rate: 72%</span>
+                        <button class="bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-secondary">
+                            Use Template
+                        </button>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl p-6 shadow-sm border border-gray-200 card-hover">
+                    <div class="flex items-center space-x-3 mb-4">
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <i class="fas fa-arrows-alt-h text-purple-600 text-xl"></i>
+                        </div>
+                        <div>
+                            <h3 class="text-lg font-semibold text-gray-900">Bollinger Bands</h3>
+                            <p class="text-sm text-gray-500">Volatility-based trading</p>
+                        </div>
+                    </div>
+                    <p class="text-gray-600 mb-4">Trades price bounces off Bollinger Bands with momentum confirmation.</p>
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm text-gray-500">Win Rate: 65%</span>
+                        <button class="bg-primary text-white px-4 py-2 rounded-lg text-sm hover:bg-secondary">
+                            Use Template
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="bg-gray-900 text-white py-12 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="text-center">
+                <div class="flex items-center justify-center space-x-2 mb-4">
+                    <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+                        <i class="fas fa-chart-line text-white text-sm"></i>
+                    </div>
+                    <span class="text-xl font-bold">DerivTrade Pro</span>
+                </div>
+                <p class="text-gray-400 mb-4">Advanced trading platform for professional traders</p>
+                <p class="text-gray-500 text-sm">© 2025 DerivTrade Pro. All rights reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="botbuilder.js"></script>
+</body>
+</html>
