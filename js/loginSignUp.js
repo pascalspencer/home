@@ -1,4 +1,4 @@
-import { AUTH_CONFIG } from './config/authConfig.js';
+import { AUTH_CONFIG } from './authConfig.js';
 
 export class DerivAuthHandler {
     constructor() {
