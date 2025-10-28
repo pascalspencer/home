@@ -180,43 +180,74 @@ class TradingDashboard {
             grid: {
                 left: '3%',
                 right: '4%',
-                bottom: '3%',
+                bottom: '10%', // give more room for rotated labels
                 containLabel: true
             },
             tooltip: {
                 trigger: 'axis',
                 formatter: function (params) {
                     const data = params[0].data;
-                    return `Time: ${new Date(data[0]).toLocaleTimeString()}<br/>
-                            Price: $${data[1].toFixed(2)}`;
+                    return `Time: ${new Date(data[0]).toLocaleTimeString()}<br/>Price: $${data[1].toFixed(2)}`;
                 }
             },
             xAxis: {
                 type: 'time',
+                boundaryGap: false,
+                axisTick: {
+                    alignWithLabel: true
+                },
+                axisLabel: {
+                    // show compact time (HH:MM) and avoid overlap
+                    formatter: function (value) {
+                        const d = new Date(value);
+                        return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                    },
+                    rotate: 40,
+                    margin: 10,
+                    hideOverlap: true,   // ECharts 5+ option to avoid overlapping labels
+                    overflow: 'truncate'
+                },
                 splitLine: {
                     show: false
                 }
             },
             yAxis: {
                 type: 'value',
-                scale: true, // Important: enables auto-scaling
+                scale: true,
                 splitLine: {
                     show: true,
                     lineStyle: {
                         type: 'dashed'
                     }
+                },
+                axisLabel: {
+                    formatter: function (value) {
+                        const num = Number(value);
+                        if (Number.isFinite(num)) return num.toFixed(2);
+                        return String(value);
+                    }
                 }
             },
+            dataZoom: [
+                {
+                    type: 'inside',
+                    throttle: 100
+                },
+                {
+                    show: false,
+                    type: 'slider'
+                }
+            ],
             series: [{
                 name: 'Price',
                 type: 'line',
                 smooth: true,
-                symbol: 'none', // Removes point symbols
+                symbol: 'none',
                 lineStyle: {
                     width: 2
                 },
                 areaStyle: {
-                    opacity: 0.1
+                    opacity: 0.08
                 },
                 data: []
             }]
@@ -234,18 +265,29 @@ class TradingDashboard {
         if (!this.chart || !this.priceData.length) return;
 
         const data = this.priceData.map(point => [
-            point.time.getTime(), // Convert to timestamp
+            point.time.getTime(),
             point.price
         ]);
 
         const minPrice = Math.min(...this.priceData.map(p => p.price));
         const maxPrice = Math.max(...this.priceData.map(p => p.price));
-        const padding = (maxPrice - minPrice) * 0.1; // Add 10% padding
+        const padding = Math.max((maxPrice - minPrice) * 0.1, 0.0001); // avoid zero padding
 
         this.chart.setOption({
+            xAxis: {
+                // keep ECharts default interval logic but ensure labels use timestamps
+                // no explicit min/max so ECharts places ticks nicely
+            },
             yAxis: {
-                min: minPrice - padding,
-                max: maxPrice + padding
+                min: +(minPrice - padding).toFixed(2),
+                max: +(maxPrice + padding).toFixed(2),
+                axisLabel: {
+                    formatter: function (value) {
+                        const num = Number(value);
+                        if (Number.isFinite(num)) return num.toFixed(2);
+                        return String(value);
+                    }
+                }
             },
             series: [{
                 data: data
