@@ -1,3 +1,5 @@
+import { authService } from './authService.js';
+
 // Trading Dashboard JavaScript
 class TradingDashboard {
     constructor() {
@@ -429,6 +431,36 @@ class TradingDashboard {
         if (newTradeButton) {
             newTradeButton.addEventListener('click', () => {
                 this.showNewTradeModal();
+            });
+        }
+
+        // Account button (for auth)
+        const accountBtn = document.querySelector('button:has(i.fas.fa-user)');
+        if (accountBtn) {
+            authService.onAuthChange((user) => {
+                if (user) {
+                    accountBtn.innerHTML = `
+                        <div class="flex items-center space-x-2">
+                            <span class="text-sm ${user.is_virtual ? 'text-gray-600' : 'text-green-600'}">
+                                ${user.is_virtual ? 'Demo' : 'Live'}
+                            </span>
+                            <span class="text-sm font-medium">${user.balance} ${user.currency}</span>
+                        </div>
+                    `;
+                } else {
+                    accountBtn.innerHTML = '<i class="fas fa-user mr-2"></i>Login';
+                }
+            });
+
+            accountBtn.addEventListener('click', () => {
+                if (!authService.user) {
+                    authService.login().catch(console.error);
+                } else {
+                    // Show logout confirmation
+                    if (confirm('Do you want to logout?')) {
+                        authService.logout();
+                    }
+                }
             });
         }
     }

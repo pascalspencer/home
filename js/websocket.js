@@ -1,6 +1,6 @@
 const WebSocket = require('ws');
 
-const app_id = 61696; // Replace with your app_id.
+const app_id = 108991; // Replace with your app_id.
 const socket = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${app_id}`); // Create a new WebSocket connection using the app_id
 
 // Event handler for when the WebSocket connection is opened

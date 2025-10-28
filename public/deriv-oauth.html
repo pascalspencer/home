@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Deriv Authorization</title>
+</head>
+<body>
+    <p>Authorizing...</p>
+    <script>
+        try {
+            const hashParams = new URLSearchParams(window.location.hash.slice(1));
+            const token = hashParams.get('access_token');
+            
+            if (token) {
+                window.opener.postMessage({
+                    type: 'deriv_auth',
+                    token: token
+                }, 'https://tradealgopro.vercel.app');
+                window.close();
+            } else {
+                document.body.innerHTML = '<p>Authorization failed. Please try again.</p>';
+            }
+        } catch (err) {
+            console.error('Auth error:', err);
+            document.body.innerHTML = '<p>An error occurred during authorization.</p>';
+        }
+    </script>
+</body>
+</html>
