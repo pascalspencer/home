@@ -5,277 +5,221 @@ class TradingDashboard {
     constructor() {
         this.chart = null;
         this.priceData = [];
-        this.currentPrice = 1234.56;
+        this.currentPrice = 0;
         this.isLive = true;
         this.trades = [];
         this.ws = null;
-        this.tickCount = 20; // Default number of ticks to display
         this.selectedMarket = 'R_100'; // Default market
-
-        // added flags to avoid noisy/random updates & duplicate notifications
-        this.useMockData = true;          // true => local random updates enabled
-        this.isSwitchingMarket = false;   // prevent concurrent market switches
-        this.lastNotificationAt = 0;      // throttle notifications
-
+        this.tickCount = 20;
+        
         this.init();
     }
 
-    init() {
-        this.initializeChart();
-        this.startPriceUpdates();
-        this.setupEventListeners();
-        this.generateInitialData();
-        this.updateStats();
-    }
-
-    async generateInitialData() {
+    async init() {
         try {
-            // Connect to Deriv API
+            // Initialize WebSocket connection
             await this.connectToDerivAPI();
             
-            // Fetch historical ticks
-            await this.fetchHistoricalTicks();
+            // Initialize chart
+            this.initializeChart();
             
-            this.updateChart();
+            // Setup event listeners
+            this.setupEventListeners();
+            
+            // Request initial market data
+            this.requestMarketData();
         } catch (error) {
-            console.error('Error fetching data from Deriv API:', error);
-            // Fallback to mock data if API fails
-            this.generateMockData();
+            console.error('Initialization error:', error);
+            this.showNotification('Failed to initialize trading dashboard', 'error');
         }
     }
-    
-    generateMockData() {
-        const now = new Date();
-        const basePrice = this.currentPrice;
-        
-        // Generate data points for initial chart
-        for (let i = this.tickCount - 1; i >= 0; i--) {
-            const time = new Date(now.getTime() - (i * 1000)); // 1 second intervals
-            const variation = (Math.random() - 0.5) * 20; // ±10 variation
-            const price = basePrice + variation + (Math.sin(i / 10) * 5);
-            
-            this.priceData.push({
-                time: time,
-                price: Math.round(price * 100) / 100,
-                volume: Math.floor(Math.random() * 1000) + 100
-            });
-        }
-        
-        this.updateChart();
-    }
-    
+
     connectToDerivAPI() {
         return new Promise((resolve, reject) => {
             this.ws = new WebSocket('wss://ws.binaryws.com/websockets/v3?app_id=61696');
             
             this.ws.onopen = () => {
                 console.log('Connected to Deriv API');
-                // Switch off mock updates when we have a live connection
-                this.useMockData = false;
-
-                // Request active symbols
+                
+                // Request active symbols once connected
                 this.ws.send(JSON.stringify({
                     active_symbols: "brief",
                     product_type: "basic"
                 }));
+                
                 resolve();
             };
-
-            // ensure we flip back to mock data on close or error
-            this.ws.onclose = () => {
-                this.useMockData = true;
-                console.log('WebSocket closed, falling back to mock data');
-            };
-
+            
             this.ws.onmessage = (msg) => {
-                const data = JSON.parse(msg.data);
-                
-                if (data.tick) {
-                    this.handleTickData(data.tick);
-                } else if (data.history) {
-                    this.handleHistoricalData(data.history);
-                } else if (data.active_symbols) {
-                    // Filter for synthetic indices only
-                    const syntheticSymbols = data.active_symbols.filter(
-                        symbol => symbol.market === 'synthetic_index'
-                    );
-                    this.populateMarketSelector(syntheticSymbols);
+                try {
+                    const data = JSON.parse(msg.data);
+                    
+                    if (data.tick) {
+                        this.handleTickData(data.tick);
+                    } else if (data.history) {
+                        this.handleHistoricalData(data.history);
+                    } else if (data.active_symbols) {
+                        this.populateMarketSelector(data.active_symbols);
+                    }
+                } catch (error) {
+                    console.error('Message handling error:', error);
                 }
             };
             
             this.ws.onerror = (error) => {
                 console.error('WebSocket error:', error);
-                // keep mock data enabled on error
-                this.useMockData = true;
                 reject(error);
             };
-        });
-    }
-    
-    fetchHistoricalTicks() {
-        return new Promise((resolve) => {
-            // Clear existing price data before requesting history
-            this.priceData = [];
 
-            const request = {
-                ticks_history: this.selectedMarket,
-                style: 'ticks',
-                end: 'latest',
-                count: this.tickCount,
-                subscribe: 1
+            this.ws.onclose = () => {
+                console.log('WebSocket connection closed');
+                this.isLive = false;
+                // Attempt to reconnect after 5 seconds
+                setTimeout(() => this.connectToDerivAPI(), 5000);
             };
-            
-            this.ws.send(JSON.stringify(request));
-            
-            // Wait for historical data but bail out after timeout
-            const start = Date.now();
-            const timeoutMs = 3000;
-            const checkData = () => {
-                if (this.priceData.length >= this.tickCount) {
-                    resolve();
-                } else if (Date.now() - start > timeoutMs) {
-                    // fallback resolve to avoid hanging forever
-                    resolve();
-                } else {
-                    setTimeout(checkData, 100);
-                }
-            };
-            checkData();
         });
     }
-    
-    handleHistoricalData(history) {
-        if (history.prices && history.times) {
-            this.priceData = [];
-            
-            for (let i = 0; i < history.prices.length; i++) {
-                this.priceData.push({
-                    time: new Date(history.times[i] * 1000),
-                    price: history.prices[i],
-                    volume: Math.floor(Math.random() * 1000) + 100 // Mock volume as it's not provided
-                });
-            }
-            
-            if (this.priceData.length > 0) {
-                this.currentPrice = this.priceData[this.priceData.length - 1].price;
-            }
-            
+
+    requestMarketData() {
+        if (!this.ws || this.ws.readyState !== WebSocket.OPEN) return;
+
+        // Unsubscribe from previous subscriptions
+        this.ws.send(JSON.stringify({
+            forget_all: 'ticks'
+        }));
+
+        // Request new market data
+        const request = {
+            ticks_history: this.selectedMarket,
+            adjust_start_time: 1,
+            count: this.tickCount,
+            end: 'latest',
+            start: 1,
+            style: 'ticks',
+            subscribe: 1
+        };
+
+        this.ws.send(JSON.stringify(request));
+    }
+
+    handleTickData(tick) {
+        if (tick.symbol !== this.selectedMarket) return;
+
+        const newDataPoint = {
+            time: new Date(tick.epoch * 1000),
+            price: parseFloat(tick.quote),
+            volume: Math.floor(Math.random() * 1000) + 100
+        };
+        
+        this.priceData.push(newDataPoint);
+        this.currentPrice = newDataPoint.price;
+        
+        // Keep only last N ticks
+        while (this.priceData.length > this.tickCount) {
+            this.priceData.shift();
+        }
+        
+        // Update UI with new data
+        requestAnimationFrame(() => {
             this.updateChart();
             this.updateStats();
-        }
+            this.addTradeToHistory(newDataPoint);
+        });
     }
-    
-    handleTickData(tick) {
-        if (tick.symbol === this.selectedMarket) {
-            const newDataPoint = {
-                time: new Date(tick.epoch * 1000),
-                price: parseFloat(tick.quote),
-                volume: Math.floor(Math.random() * 1000) + 100
-            };
+
+    handleHistoricalData(history) {
+        if (!history.prices) return;
+
+        this.priceData = history.prices.map((price, index) => ({
+            time: new Date(history.times[index] * 1000),
+            price: parseFloat(price),
+            volume: Math.floor(Math.random() * 1000) + 100
+        }));
+
+        if (this.priceData.length > 0) {
+            this.currentPrice = this.priceData[this.priceData.length - 1].price;
+        }
+
+        this.updateUI();
+    }
+
+    updateUI() {
+        this.updateChart();
+        this.updateStats();
+        this.updateActivePositions();
+    }
+
+    updateStats() {
+        const priceElement = document.getElementById('currentPrice');
+        if (!priceElement) return;
+
+        priceElement.textContent = `$${this.currentPrice.toFixed(2)}`;
+
+        // Update price change
+        if (this.priceData.length >= 2) {
+            const oldPrice = this.priceData[this.priceData.length - 2].price;
+            const change = ((this.currentPrice - oldPrice) / oldPrice) * 100;
             
-            this.priceData.push(newDataPoint);
-            this.currentPrice = newDataPoint.price; // Update current price
-            
-            // Keep only the last N ticks
-            if (this.priceData.length > this.tickCount) {
-                this.priceData.shift();
+            const changeElement = priceElement.parentElement.nextElementSibling?.querySelector('span');
+            if (changeElement) {
+                const changeText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
+                changeElement.textContent = changeText;
+                changeElement.className = `text-${change >= 0 ? 'green' : 'red'}-600 text-sm font-medium`;
             }
-            
-            this.updateChart();
-            this.updateStats(); // Update price display
         }
     }
 
     initializeChart() {
         const chartDom = document.getElementById('tradingChart');
+        if (!chartDom) return;
+
         this.chart = echarts.init(chartDom);
         
         const option = {
-            backgroundColor: 'transparent',
+            animation: true,
             grid: {
                 left: '3%',
                 right: '4%',
                 bottom: '3%',
-                top: '10%',
                 containLabel: true
+            },
+            tooltip: {
+                trigger: 'axis',
+                formatter: function (params) {
+                    const data = params[0].data;
+                    return `Time: ${new Date(data[0]).toLocaleTimeString()}<br/>
+                            Price: $${data[1].toFixed(2)}`;
+                }
             },
             xAxis: {
                 type: 'time',
-                boundaryGap: false,
-                axisLine: {
-                    lineStyle: {
-                        color: '#e5e7eb'
-                    }
-                },
-                axisLabel: {
-                    color: '#6b7280',
-                    fontSize: 10
+                splitLine: {
+                    show: false
                 }
             },
             yAxis: {
                 type: 'value',
-                scale: true,
-                axisLine: {
-                    lineStyle: {
-                        color: '#e5e7eb'
-                    }
-                },
-                axisLabel: {
-                    color: '#6b7280',
-                    fontSize: 10,
-                    formatter: function(value) {
-                        return '$' + value.toFixed(2);
-                    }
-                },
+                scale: true, // Important: enables auto-scaling
                 splitLine: {
+                    show: true,
                     lineStyle: {
-                        color: '#f3f4f6'
+                        type: 'dashed'
                     }
                 }
             },
             series: [{
                 name: 'Price',
                 type: 'line',
-                data: [],
                 smooth: true,
-                symbol: 'none',
+                symbol: 'none', // Removes point symbols
                 lineStyle: {
-                    color: '#2563eb',
                     width: 2
                 },
                 areaStyle: {
-                    color: {
-                        type: 'linear',
-                        x: 0,
-                        y: 0,
-                        x2: 0,
-                        y2: 1,
-                        colorStops: [{
-                            offset: 0, color: 'rgba(37, 99, 235, 0.3)'
-                        }, {
-                            offset: 1, color: 'rgba(37, 99, 235, 0.05)'
-                        }]
-                    }
-                }
-            }],
-            tooltip: {
-                trigger: 'axis',
-                backgroundColor: 'rgba(0, 0, 0, 0.8)',
-                borderColor: 'transparent',
-                textStyle: {
-                    color: '#fff',
-                    fontSize: 12
+                    opacity: 0.1
                 },
-                formatter: function(params) {
-                    const data = params[0];
-                    const time = new Date(data.axisValue).toLocaleTimeString();
-                    const price = '$' + data.value[1].toFixed(2);
-                    return `<div style="font-size: 12px;">
-                        <div style="margin-bottom: 4px;"><strong>${time}</strong></div>
-                        <div>Price: <strong>${price}</strong></div>
-                    </div>`;
-                }
-            }
+                data: []
+            }]
         };
         
         this.chart.setOption(option);
@@ -287,14 +231,24 @@ class TradingDashboard {
     }
 
     updateChart() {
-        const chartData = this.priceData.map(item => [
-            item.time.getTime(),
-            item.price
+        if (!this.chart || !this.priceData.length) return;
+
+        const data = this.priceData.map(point => [
+            point.time.getTime(), // Convert to timestamp
+            point.price
         ]);
-        
+
+        const minPrice = Math.min(...this.priceData.map(p => p.price));
+        const maxPrice = Math.max(...this.priceData.map(p => p.price));
+        const padding = (maxPrice - minPrice) * 0.1; // Add 10% padding
+
         this.chart.setOption({
+            yAxis: {
+                min: minPrice - padding,
+                max: maxPrice + padding
+            },
             series: [{
-                data: chartData
+                data: data
             }]
         });
     }
@@ -333,26 +287,6 @@ class TradingDashboard {
         this.updateChart();
         this.updateStats();
         this.addTradeToHistory(newDataPoint);
-    }
-
-    updateStats() {
-        // Update current price display
-        const priceElement = document.getElementById('currentPrice');
-        if (priceElement) {
-            priceElement.textContent = '$' + this.currentPrice.toFixed(2);
-        }
-        
-        // Calculate and update percentage change
-        if (this.priceData.length >= 2) {
-            const previousPrice = this.priceData[this.priceData.length - 2].price;
-            const change = ((this.currentPrice - previousPrice) / previousPrice) * 100;
-            const changeElement = priceElement?.nextElementSibling?.querySelector('span');
-            if (changeElement) {
-                const changeText = (change >= 0 ? '+' : '') + change.toFixed(2) + '%';
-                changeElement.textContent = changeText;
-                changeElement.className = change >= 0 ? 'text-green-600 text-sm font-medium' : 'text-red-600 text-sm font-medium';
-            }
-        }
     }
 
     addTradeToHistory(dataPoint) {
@@ -414,7 +348,9 @@ class TradingDashboard {
         const marketSelector = document.getElementById('marketSelector');
         if (marketSelector) {
             marketSelector.addEventListener('change', (e) => {
-                this.switchMarket(e.target.value);
+                this.selectedMarket = e.target.value;
+                this.priceData = [];
+                this.requestMarketData();
             });
         }
         
@@ -422,7 +358,8 @@ class TradingDashboard {
         const tickCountInput = document.getElementById('tickCountInput');
         if (tickCountInput) {
             tickCountInput.addEventListener('change', (e) => {
-                this.updateTickCount(parseInt(e.target.value));
+                this.tickCount = parseInt(e.target.value) || 20;
+                this.requestMarketData();
             });
         }
         
@@ -545,65 +482,43 @@ class TradingDashboard {
     }
 
     async switchMarket(marketSymbol) {
-        // prevent concurrent switches / repeated notifications
         if (this.isSwitchingMarket) return;
         this.isSwitchingMarket = true;
 
-        // set selected market immediately (so incoming ticks are filtered)
-        this.selectedMarket = marketSymbol;
-        
-        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            // Reset data
+        try {
+            // Unsubscribe from previous market
+            if (this.ws) {
+                this.ws.send(JSON.stringify({
+                    forget_all: 'ticks'
+                }));
+            }
+
+            this.selectedMarket = marketSymbol;
             this.priceData = [];
             
-            // Unsubscribe from previous market
-            this.ws.send(JSON.stringify({
-                forget_all: 'ticks'
-            }));
+            // Request new market data
+            const request = {
+                ticks_history: marketSymbol,
+                adjust_start_time: 1,
+                count: this.tickCount,
+                end: 'latest',
+                start: 1,
+                style: 'ticks',
+                subscribe: 1
+            };
 
-            try {
-                // Fetch historical data for new market
-                await this.fetchHistoricalTicks();
-                
-                // Update current price from the latest tick if available
-                if (this.priceData.length > 0) {
-                    this.currentPrice = this.priceData[this.priceData.length - 1].price;
-                    this.updateStats(); // Update price display
-                }
-                
-                // Update chart with new data
-                this.updateChart();
-                
-                // throttle notification: only one per 1s
-                const now = Date.now();
-                if (now - this.lastNotificationAt > 1000) {
-                    const marketName = await this.getMarketName(marketSymbol);
-                    this.showNotification(`Switched to ${marketName}`, 'info');
-                    this.lastNotificationAt = now;
-                }
-            } catch (error) {
-                console.error('Error switching market:', error);
-                // show a single error notification
-                const now = Date.now();
-                if (now - this.lastNotificationAt > 1000) {
-                    this.showNotification('Error switching market', 'error');
-                    this.lastNotificationAt = now;
-                }
-            } finally {
-                this.isSwitchingMarket = false;
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify(request));
             }
-        } else {
-            // Fallback to mock data if WebSocket isn't connected
-            this.useMockData = true;
-            this.priceData = [];
-            this.generateMockData();
-            this.updateStats();
+
+            // Update UI immediately
             this.updateChart();
-            const now = Date.now();
-            if (now - this.lastNotificationAt > 1000) {
-                this.showNotification(`Switched to ${marketSymbol}`, 'info');
-                this.lastNotificationAt = now;
-            }
+            this.updateStats();
+            
+        } catch (error) {
+            console.error('Error switching market:', error);
+            this.showNotification('Error switching market', 'error');
+        } finally {
             this.isSwitchingMarket = false;
         }
     }
@@ -628,22 +543,6 @@ class TradingDashboard {
                 product_type: 'basic'
             }));
         });
-    }
-    
-    updateTickCount(newCount) {
-        if (newCount >= 10 && newCount <= 100) {
-            this.tickCount = newCount;
-            
-            // Refetch data with new tick count
-            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                this.fetchHistoricalTicks();
-            } else {
-                this.priceData = [];
-                this.generateMockData();
-            }
-            
-            this.showNotification(`Updated tick count to ${newCount}`, 'info');
-        }
     }
     
     // Clean up WebSocket connection when needed

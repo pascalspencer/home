@@ -69,7 +69,7 @@
         }
     </style>
     <script type="module">
-        import { DerivAuthHandler } from './js/loginSignUp.js';
+        import { DerivAuthHandler } from '/js/authHandler.js';
         
         document.addEventListener('DOMContentLoaded', () => {
             const authHandler = new DerivAuthHandler();
@@ -445,6 +445,9 @@
         </div>
     </footer>
 
-    <script src="/js/main.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/echarts/5.4.3/echarts.min.js"></script>
+    <script type="module" src="/js/config/authConfig.js"></script>
+    <script type="module" src="/js/loginSignUp.js"></script>
+    <script type="module" src="/js/main.js"></script>
 </body>
 </html>

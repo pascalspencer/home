@@ -1,35 +1,83 @@
 const WebSocket = require('ws');
 
-const app_id = 108991; // Replace with your app_id.
-const socket = new WebSocket(`wss://ws.derivws.com/websockets/v3?app_id=${app_id}`); // Create a new WebSocket connection using the app_id
+class DerivWebSocket {
+    constructor(appId = 108991) {
+        this.ws = null;
+        this.appId = appId;
+        this.subscribers = new Map();
+    }
 
-// Event handler for when the WebSocket connection is opened
-socket.onopen = function (e) {
-  console.log('[open] Connection established'); // Log connection establishment
-  console.log('Sending to server');
+    connect() {
+        return new Promise((resolve, reject) => {
+            this.ws = new WebSocket(`wss://ws.binaryws.com/websockets/v3?app_id=${this.appId}`);
 
-  const sendMessage = JSON.stringify({ ping: 1 }); // Create a ping message in JSON format
-  socket.send(sendMessage); // Send the ping message to the server
-};
+            this.ws.onopen = () => {
+                console.log('[open] Connection established');
+                resolve(this.ws);
+            };
 
-// Event handler for when a message is received from the server
-socket.onmessage = function (event) {
-  console.log(`[message] Data received from server: ${event.data}`); // Log the message received from the server
-};
+            this.ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                this.notifySubscribers(data);
+            };
 
-// Event handler for when the WebSocket connection is closed
-socket.onclose = function (event) {
-  if (event.wasClean) {
-    console.log(`[close] Connection closed cleanly, code=${event.code} reason=${event.reason}`); // Log clean close with code and reason
-  } else {
-    console.log('[close] Connection died'); // Log an abrupt close
-  }
-};
+            this.ws.onerror = (error) => {
+                console.error('[error]', error);
+                reject(error);
+            };
 
-// Event handler for when an error occurs with the WebSocket connection
-socket.onerror = function (error) {
-  console.log(`[error] ${error.message}`); // Log the error that occurred
-};
+            this.ws.onclose = (event) => {
+                if (event.wasClean) {
+                    console.log(`[close] Connection closed cleanly, code=${event.code} reason=${event.reason}`);
+                } else {
+                    console.log('[close] Connection died');
+                }
+            };
+        });
+    }
+
+    subscribe(type, callback) {
+        if (!this.subscribers.has(type)) {
+            this.subscribers.set(type, new Set());
+        }
+        this.subscribers.get(type).add(callback);
+    }
+
+    unsubscribe(type, callback) {
+        if (this.subscribers.has(type)) {
+            this.subscribers.get(type).delete(callback);
+        }
+    }
+
+    notifySubscribers(data) {
+        // Notify relevant subscribers based on data type
+        if (data.tick) {
+            this.subscribers.get('tick')?.forEach(callback => callback(data.tick));
+        }
+        if (data.history) {
+            this.subscribers.get('history')?.forEach(callback => callback(data.history));
+        }
+        if (data.active_symbols) {
+            this.subscribers.get('active_symbols')?.forEach(callback => callback(data.active_symbols));
+        }
+    }
+
+    send(request) {
+        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+            this.ws.send(JSON.stringify(request));
+        } else {
+            console.error('WebSocket is not connected');
+        }
+    }
+
+    close() {
+        if (this.ws) {
+            this.ws.close();
+        }
+    }
+}
+
+module.exports = DerivWebSocket;
 
 /*
 Instructions to run this code:
