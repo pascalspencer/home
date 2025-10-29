@@ -1,23 +1,39 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Deriv Authorization</title>
 </head>
 <body>
     <p>Authorizing...</p>
+
     <script>
         try {
-            const hashParams = new URLSearchParams(window.location.hash.slice(1));
-            const token = hashParams.get('token1');
-            
+            // Use search (query params), not hash
+            const urlParams = new URLSearchParams(window.location.search);
+            const token1 = urlParams.get('token1');
+            const token2 = urlParams.get('token2');
+
+            const token = token1 || token2; // pick whichever exists
+
             if (token) {
-                window.opener.postMessage({
-                    type: 'deriv_auth',
-                    token: token
-                }, 'https://tradealgopro.vercel.app');
-                window.close();
+                // Display token in the page (for testing)
+                document.body.innerHTML = `
+                    <p><strong>Authorization successful!</strong></p>
+                    <p>Token: <code>${token}</code></p>
+                `;
+
+                // Send token back to opener (if using popup auth)
+                if (window.opener) {
+                    window.opener.postMessage({
+                        type: 'deriv_auth',
+                        token: token
+                    }, 'https://tradealgopro.vercel.app');
+                    // window.close(); // optional — uncomment when using popup
+                }
             } else {
-                document.body.innerHTML = '<p>Authorization failed. Please try again.</p>';
+                document.body.innerHTML = '<p>No token found in the URL.</p>';
             }
         } catch (err) {
             console.error('Auth error:', err);
