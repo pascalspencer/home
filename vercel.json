@@ -1,17 +1,19 @@
 {
+  "builds": [
+    {
+      "src": "public/**/*",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    { "src": "/(.*)", "dest": "public/$1" }
+  ],
   "headers": [
     {
       "source": "/js/(.*)",
       "headers": [
         { "key": "Content-Type", "value": "text/javascript" }
       ]
-    },
-    {
-      "source": "/(.*)",
-      "headers": [
-        { "key": "Cache-Control", "value": "public, max-age=3600, must-revalidate" }
-      ]
     }
-  ],
-  "cleanUrls": true
+  ]
 }
