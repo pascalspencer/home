@@ -1,13 +1,7 @@
 {
-  "builds": [
-    {
-      "src": "public/**/*",
-      "use": "@vercel/static"
-    }
-  ],
   "headers": [
     {
-      "source": "/public/js/(.*)",
+      "source": "/js/(.*)",
       "headers": [
         { "key": "Content-Type", "value": "text/javascript" }
       ]
