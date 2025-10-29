@@ -5,12 +5,9 @@
       "use": "@vercel/static"
     }
   ],
-  "rewrites": [
-    { "src": "/(.*)", "dest": "public/$1" }
-  ],
   "headers": [
     {
-      "source": "/js/(.*)",
+      "source": "/public/js/(.*)",
       "headers": [
         { "key": "Content-Type", "value": "text/javascript" }
       ]
