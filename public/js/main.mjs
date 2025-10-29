@@ -405,13 +405,13 @@ class TradingDashboard {
             });
         }
         
-        // New Trade button
-        const newTradeButton = document.querySelector('button[class*="bg-primary"]:not(.bg-green-500):not(.bg-red-500)');
-        if (newTradeButton) {
-            newTradeButton.addEventListener('click', () => {
-                this.showNewTradeModal();
-            });
-        }
+        // // New Trade button
+        // const newTradeButton = document.querySelector('button[class*="bg-primary"]:not(.bg-green-500):not(.bg-red-500)');
+        // if (newTradeButton) {
+        //     newTradeButton.addEventListener('click', () => {
+        //         this.showNewTradeModal();
+        //     });
+        // }
 
         // Account button (for auth)
         const accountBtn = document.querySelector('button:has(i.fas.fa-user)');
@@ -595,60 +595,60 @@ class TradingDashboard {
         }
     }
 
-    showNewTradeModal() {
-        const modal = document.createElement('div');
-        modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
+    // showNewTradeModal() {
+    //     const modal = document.createElement('div');
+    //     modal.className = 'fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50';
         
-        modal.innerHTML = `
-            <div class="bg-white rounded-xl p-6 w-96 max-w-90vw">
-                <h3 class="text-xl font-bold text-gray-900 mb-4">Create New Trade</h3>
-                <div class="space-y-4">
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Market</label>
-                        <select class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                            <option>Volatility 100 Index</option>
-                            <option>Crash 1000 Index</option>
-                            <option>Boom 1000 Index</option>
-                            <option>Forex - EUR/USD</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Trade Type</label>
-                        <div class="flex space-x-2">
-                            <button class="flex-1 bg-green-500 text-white py-2 rounded-lg font-medium">BUY</button>
-                            <button class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-medium">SELL</button>
-                        </div>
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Amount ($)</label>
-                        <input type="number" value="100" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                    </div>
-                    <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-2">Duration</label>
-                        <select class="w-full px-3 py-2 border border-gray-300 rounded-lg">
-                            <option>1 minute</option>
-                            <option>5 minutes</option>
-                            <option>15 minutes</option>
-                            <option>1 hour</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="flex space-x-3 mt-6">
-                    <button class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-medium" onclick="this.closest('.fixed').remove()">Cancel</button>
-                    <button class="flex-1 bg-primary text-white py-2 rounded-lg font-medium" onclick="this.closest('.fixed').remove()">Create Trade</button>
-                </div>
-            </div>
-        `;
+    //     modal.innerHTML = `
+    //         <div class="bg-white rounded-xl p-6 w-96 max-w-90vw">
+    //             <h3 class="text-xl font-bold text-gray-900 mb-4">Create New Trade</h3>
+    //             <div class="space-y-4">
+    //                 <div>
+    //                     <label class="block text-sm font-medium text-gray-700 mb-2">Market</label>
+    //                     <select class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+    //                         <option>Volatility 100 Index</option>
+    //                         <option>Crash 1000 Index</option>
+    //                         <option>Boom 1000 Index</option>
+    //                         <option>Forex - EUR/USD</option>
+    //                     </select>
+    //                 </div>
+    //                 <div>
+    //                     <label class="block text-sm font-medium text-gray-700 mb-2">Trade Type</label>
+    //                     <div class="flex space-x-2">
+    //                         <button class="flex-1 bg-green-500 text-white py-2 rounded-lg font-medium">BUY</button>
+    //                         <button class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-medium">SELL</button>
+    //                     </div>
+    //                 </div>
+    //                 <div>
+    //                     <label class="block text-sm font-medium text-gray-700 mb-2">Amount ($)</label>
+    //                     <input type="number" value="100" class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+    //                 </div>
+    //                 <div>
+    //                     <label class="block text-sm font-medium text-gray-700 mb-2">Duration</label>
+    //                     <select class="w-full px-3 py-2 border border-gray-300 rounded-lg">
+    //                         <option>1 minute</option>
+    //                         <option>5 minutes</option>
+    //                         <option>15 minutes</option>
+    //                         <option>1 hour</option>
+    //                     </select>
+    //                 </div>
+    //             </div>
+    //             <div class="flex space-x-3 mt-6">
+    //                 <button class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg font-medium" onclick="this.closest('.fixed').remove()">Cancel</button>
+    //                 <button class="flex-1 bg-primary text-white py-2 rounded-lg font-medium" onclick="this.closest('.fixed').remove()">Create Trade</button>
+    //             </div>
+    //         </div>
+    //     `;
         
-        document.body.appendChild(modal);
+    //     document.body.appendChild(modal);
         
-        // Close modal when clicking outside
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) {
-                modal.remove();
-            }
-        });
-    }
+    //     // Close modal when clicking outside
+    //     modal.addEventListener('click', (e) => {
+    //         if (e.target === modal) {
+    //             modal.remove();
+    //         }
+    //     });
+    // }
 
     showNotification(message, type = 'success') {
         const notification = document.createElement('div');
