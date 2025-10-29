@@ -1,4 +1,4 @@
-import { AUTH_CONFIG } from './authConfig.js';
+import { AUTH_CONFIG } from './authConfig.mjs';
 
 class DerivAuthService {
     constructor() {

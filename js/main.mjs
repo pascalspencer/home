@@ -1,4 +1,4 @@
-import { authService } from './authService.js';
+import { authService } from './authService.mjs';
 
 // Trading Dashboard JavaScript
 class TradingDashboard {
