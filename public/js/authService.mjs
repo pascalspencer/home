@@ -13,7 +13,7 @@ class DerivAuthService {
         window.addEventListener('message', this._handleAuthMessage.bind(this), false);
         
         // Check for stored token
-        const storedToken = localStorage.getItem('deriv_auth');
+        const storedToken = localStorage.getItem('deriv_token');
         if (storedToken) {
             await this.validateToken(storedToken);
         }
