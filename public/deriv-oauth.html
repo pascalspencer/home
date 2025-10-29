@@ -1,31 +1,44 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <title>Deriv Authorization</title>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Deriv Authorization</title>
 </head>
 <body>
-  <p>Authorizing...</p>
-  <script>
-    try {
-      const url = new URL(window.location.href);
-      const token1 = url.searchParams.get('token1');
-      const token2 = url.searchParams.get('token2');
-      const token = token1 || token2; // use whichever exists
+    <p>Authorizing...</p>
 
-      if (token) {
-        // send the token to parent
-        window.opener.postMessage(
-          { type: 'deriv_auth', token },
-          'https://tradealgopro.vercel.app' // you can tighten this later with your origin
-        );
-        window.close();
-      } else {
-        document.body.innerHTML = '<p>Authorization failed. Please try again.</p>';
-      }
-    } catch (err) {
-      console.error('Auth error:', err);
-      document.body.innerHTML = '<p>An error occurred during authorization.</p>';
-    }
-  </script>
+    <script>
+        try {
+            // Use search (query params), not hash
+            const urlParams = new URLSearchParams(window.location.search);
+            const token1 = urlParams.get('token1');
+            const token2 = urlParams.get('token2');
+
+            const token = token1 || token2; // pick whichever exists
+
+            if (token) {
+                // Display token in the page (for testing)
+                document.body.innerHTML = `
+                    <p><strong>Authorization successful!</strong></p>
+                    
+                `;
+
+                // Send token back to opener (if using popup auth)
+                if (window.opener) {
+                    window.opener.postMessage({
+                        type: 'deriv_auth',
+                        token: token
+                    }, 'https://tradealgopro.vercel.app');
+                    window.close(); 
+                }
+            } else {
+                document.body.innerHTML = '<p>No token found in the URL.</p>';
+            }
+        } catch (err) {
+            console.error('Auth error:', err);
+            document.body.innerHTML = '<p>An error occurred during authorization.</p>';
+        }
+    </script>
 </body>
 </html>
