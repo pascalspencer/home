@@ -5,7 +5,7 @@
       "use": "@vercel/static"
     }
   ],
-  "routes": [
+  "rewrites": [
     { "src": "/(.*)", "dest": "public/$1" }
   ],
   "headers": [
