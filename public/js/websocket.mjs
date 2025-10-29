@@ -5,6 +5,11 @@ class DerivWebSocket {
         this.ws = null;
         this.appId = appId;
         this.subscribers = new Map();
+        this.pingInterval = null;
+        this.reconnectDelay = 3000; // 3 seconds
+        this.maxReconnectAttempts = 5;
+        this.reconnectAttempts = 0;
+        this.isManualClose = false;
     }
 
     connect() {
@@ -13,27 +18,76 @@ class DerivWebSocket {
 
             this.ws.onopen = () => {
                 console.log('[open] Connection established');
+                this.startPing(); // start ping loop
+                this.reconnectAttempts = 0;
                 resolve(this.ws);
             };
 
             this.ws.onmessage = (event) => {
                 const data = JSON.parse(event.data);
-                this.notifySubscribers(data);
+                if (data.ping) {
+                    console.log('[ping] pong received');
+                } else {
+                    this.notifySubscribers(data);
+                }
             };
 
             this.ws.onerror = (error) => {
-                console.error('[error]', error);
+                console.error('[error]', error.message);
                 reject(error);
             };
 
             this.ws.onclose = (event) => {
+                this.stopPing();
+                if (this.isManualClose) {
+                    console.log('[close] Connection closed manually.');
+                    return;
+                }
+
                 if (event.wasClean) {
-                    console.log(`[close] Connection closed cleanly, code=${event.code} reason=${event.reason}`);
+                    console.log(`[close] Connection closed cleanly, code=${event.code}, reason=${event.reason}`);
                 } else {
-                    console.log('[close] Connection died');
+                    console.log('[close] Connection lost — attempting reconnect...');
+                    this.handleReconnect();
                 }
             };
         });
+    }
+
+    handleReconnect() {
+        if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+            console.error('[reconnect] Max reconnect attempts reached. Stopping.');
+            return;
+        }
+
+        setTimeout(async () => {
+            this.reconnectAttempts++;
+            console.log(`[reconnect] Attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts}...`);
+            try {
+                await this.connect();
+                console.log('[reconnect] Reconnected successfully.');
+            } catch (error) {
+                console.error('[reconnect] Failed:', error.message);
+                this.handleReconnect();
+            }
+        }, this.reconnectDelay);
+    }
+
+    startPing() {
+        this.stopPing(); // clear any existing interval
+        this.pingInterval = setInterval(() => {
+            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                this.ws.send(JSON.stringify({ ping: 1 }));
+                console.log('[ping] sent');
+            }
+        }, 30000); // every 30 seconds
+    }
+
+    stopPing() {
+        if (this.pingInterval) {
+            clearInterval(this.pingInterval);
+            this.pingInterval = null;
+        }
     }
 
     subscribe(type, callback) {
@@ -50,15 +104,14 @@ class DerivWebSocket {
     }
 
     notifySubscribers(data) {
-        // Notify relevant subscribers based on data type
         if (data.tick) {
-            this.subscribers.get('tick')?.forEach(callback => callback(data.tick));
+            this.subscribers.get('tick')?.forEach(cb => cb(data.tick));
         }
         if (data.history) {
-            this.subscribers.get('history')?.forEach(callback => callback(data.history));
+            this.subscribers.get('history')?.forEach(cb => cb(data.history));
         }
         if (data.active_symbols) {
-            this.subscribers.get('active_symbols')?.forEach(callback => callback(data.active_symbols));
+            this.subscribers.get('active_symbols')?.forEach(cb => cb(data.active_symbols));
         }
     }
 
@@ -71,24 +124,10 @@ class DerivWebSocket {
     }
 
     close() {
-        if (this.ws) {
-            this.ws.close();
-        }
+        this.isManualClose = true;
+        this.stopPing();
+        if (this.ws) this.ws.close();
     }
 }
 
 module.exports = DerivWebSocket;
-
-/*
-Instructions to run this code:
-
-1. Ensure Node.js is installed on your machine. You can download it from https://nodejs.org/.
-2. Install the `ws` WebSocket library by running:
-   npm install ws
-3. Save this code to a file, e.g., `websocket_client.js`.
-4. Open a terminal and navigate to the directory where you saved the file.
-5. Run the code using the following command:
-   node websocket_client.js
-
-Ensure that the `app_id` in the URL is replaced with your own if needed.
-*/
