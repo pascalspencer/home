@@ -8,7 +8,7 @@
     <script>
         try {
             const hashParams = new URLSearchParams(window.location.hash.slice(1));
-            const token = hashParams.get('access_token');
+            const token = hashParams.get('token1');
             
             if (token) {
                 window.opener.postMessage({
