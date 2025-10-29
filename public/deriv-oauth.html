@@ -21,7 +21,7 @@
                 // Display token in the page (for testing)
                 document.body.innerHTML = `
                     <p><strong>Authorization successful!</strong></p>
-                    <p>Token: <code>${token}</code></p>
+                    
                 `;
 
                 // Send token back to opener (if using popup auth)
@@ -30,7 +30,7 @@
                         type: 'deriv_auth',
                         token: token
                     }, 'https://tradealgopro.vercel.app');
-                    // window.close(); // optional — uncomment when using popup
+                    window.close(); 
                 }
             } else {
                 document.body.innerHTML = '<p>No token found in the URL.</p>';
