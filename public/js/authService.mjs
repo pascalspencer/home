@@ -10,26 +10,29 @@ class DerivAuthService {
 
     async init() {
         console.log('DerivAuthService: Initializing...');
-        // Listen for auth messages from popup
-        window.addEventListener('message', this._handleAuthMessage.bind(this), false);
         
-        // Check for stored token
-        const storedToken = localStorage.getItem('deriv_token');
-        if (storedToken) {
-            console.log('DerivAuthService: Found stored token, validating...');
-            await this.validateToken(storedToken);
+        // Check for token in URL after redirect
+        const urlParams = new URLSearchParams(window.location.search);
+        const token = urlParams.get('token');
+        if (token) {
+            console.log('DerivAuthService: Found token in URL, validating...');
+            await this.validateToken(token);
+            // Clear token from URL to prevent re-processing on refresh
+            window.history.replaceState({}, document.title, window.location.pathname);
         } else {
-            console.log('DerivAuthService: No stored token found.');
+            // Check for stored token
+            const storedToken = localStorage.getItem('deriv_token');
+            if (storedToken) {
+                console.log('DerivAuthService: Found stored token, validating...');
+                await this.validateToken(storedToken);
+            } else {
+                console.log('DerivAuthService: No stored token found.');
+            }
         }
     }
 
     async login() {
-        console.log('DerivAuthService: Attempting to open Deriv login popup.');
-        const width = 900;
-        const height = 700;
-        const left = Math.floor((screen.width - width) / 2);
-        const top = Math.floor((screen.height - height) / 2);
-
+        console.log('DerivAuthService: Redirecting to Deriv login page.');
         const params = new URLSearchParams({
             app_id: AUTH_CONFIG.APP_ID,
             l: 'EN',
@@ -37,15 +40,7 @@ class DerivAuthService {
             response_type: 'token'
         });
 
-        const popup = window.open(
-            `${AUTH_CONFIG.OAUTH_URL}?${params.toString()}`,
-            'DerivLogin',
-            `width=${width},height=${height},top=${top},left=${left}`
-        );
-
-        if (!popup) {
-            throw new Error('Popup blocked. Please allow popups for this site.');
-        }
+        window.location.replace(`${AUTH_CONFIG.OAUTH_URL}?${params.toString()}`);
     }
 
     async logout() {

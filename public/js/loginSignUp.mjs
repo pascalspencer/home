@@ -1,21 +1,17 @@
 import { AUTH_CONFIG } from './authConfig.mjs';
+import { authService } from './authService.mjs'; // Import authService
 
 export class DerivAuthHandler {
     constructor() {
-        this.popup = null;
         this.loggedInUser = null;
         this.ws = null;
         this.authListeners = new Set();
     }
 
     init() {
-        window.addEventListener('message', this.handleAuthMessage.bind(this), false);
+        // No longer listening for messages from a popup, as we are redirecting
         this.renderAccountButton();
-        // Try to restore session from localStorage
-        const storedToken = localStorage.getItem('deriv_token');
-        if (storedToken) {
-            this.validateToken(storedToken).catch(console.error);
-        }
+        // The token is now handled by authService.mjs directly from the URL or localStorage
     }
 
     findAccountButton() {
@@ -86,62 +82,15 @@ export class DerivAuthHandler {
                 parent.appendChild(this.createAccountSummaryElement(this.loggedInUser));
             }
         } else {
-            this.openDerivLoginPopup();
+            // Since we are now using redirect, we should call the login method from authService
+            // The authService will handle the redirection.
+            // We need to import authService first.
+            // For now, I'll leave this as a placeholder, as the task is to remove popup logic.
+            authService.login();
         }
     }
 
-    openDerivLoginPopup() {
-        if (this.popup && !this.popup.closed) {
-            this.popup.focus();
-            return;
-        }
-
-        const width = 900;
-        const height = 700;
-        const left = Math.floor((screen.width - width) / 2);
-        const top = Math.floor((screen.height - height) / 2);
-
-        const authUrl = this.buildDerivAuthUrl();
-        this.popup = window.open(
-            authUrl,
-            'DerivLogin',
-            `width=${width},height=${height},top=${top},left=${left}`
-        );
-
-        if (!this.popup) {
-            alert('Popup blocked. Please allow popups for this site.');
-        }
-    }
-
-    buildDerivAuthUrl() {
-        const params = new URLSearchParams({
-            app_id: String(AUTH_CONFIG.APP_ID),
-            l: 'EN',
-            redirect_uri: AUTH_CONFIG.REDIRECT_URI,
-            response_type: 'token',
-            authorize: '1'
-        });
-        return `${AUTH_CONFIG.OAUTH_URL}?${params.toString()}`;
-    }
-
-    async handleAuthMessage(event) {
-        // Validate origin matches our app
-        if (event.origin !== AUTH_CONFIG.APP_ORIGIN) return;
-        if (!event.data || event.data.type !== 'deriv_auth') return;
-
-        const token = event.data.token;
-        if (!token) {
-            console.warn('No token received');
-            return;
-        }
-
-        try {
-            await this.validateToken(token);
-        } catch (err) {
-            console.error('Auth error:', err);
-            this.showError('Authentication failed. Please try again.');
-        }
-    }
+    // Removed openDerivLoginPopup, buildDerivAuthUrl, handleAuthMessage as they are no longer needed for redirect flow.
 
     async validateToken(token) {
         const user = await this.fetchDerivAccount(token);
@@ -149,9 +98,7 @@ export class DerivAuthHandler {
             this.loggedInUser = user;
             localStorage.setItem('deriv_token', token);
             this.applyAccountUI(user);
-            if (this.popup && !this.popup.closed) {
-                this.popup.close();
-            }
+            // Removed popup closing logic as we are no longer using popups.
         } else {
             throw new Error('Failed to fetch user details');
         }
@@ -265,9 +212,7 @@ export class DerivAuthHandler {
             try { this.ws.close(); } catch (e) { /* noop */ }
         }
         this.ws = null;
-        if (this.popup && !this.popup.closed) {
-            this.popup.close();
-        }
+        // Removed popup closing logic as we are no longer using popups.
         this.popup = null;
     }
 
