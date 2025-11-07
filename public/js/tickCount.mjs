@@ -1,8 +1,9 @@
 // tickCount.mjs
 // Fetches and displays the latest 20 ticks (2 rows × 10 columns) beside Current Price
+import { authService } from './authService.mjs';
 
 const TICKS_LIMIT = 20;
-const MARKET = 'R_100'; // Default market, can be dynamic
+const MARKET = 'R_100'; // Default market
 const WS_URL = 'wss://ws.binaryws.com/websockets/v3';
 
 class TickStream {
@@ -12,19 +13,25 @@ class TickStream {
         this.container = null;
         this.priceElement = document.getElementById('currentPrice');
         this.market = MARKET;
+        this.token = null;
     }
 
-    init() {
+    async init() {
+        await authService.init();
+        this.token = authService.token || localStorage.getItem('deriv_token');
+
+        if (!this.token) {
+            console.warn('⚠️ No token found. Tick stream will run in guest mode.');
+        }
+
         this._createTickContainer();
         this._connectWebSocket();
     }
 
     _createTickContainer() {
-        // Find the current price card
         const currentPriceCard = document.querySelector('.bg-white.rounded-xl.p-4.shadow-sm.border');
         if (!currentPriceCard) return;
 
-        // Create container for tick grid
         this.container = document.createElement('div');
         this.container.id = 'tickGrid';
         this.container.className = `
@@ -32,7 +39,6 @@ class TickStream {
             text-center text-sm font-medium text-gray-700
         `;
 
-        // Insert it next to the Current Price card
         currentPriceCard.parentNode.insertBefore(this.container, currentPriceCard.nextSibling);
     }
 
@@ -41,11 +47,28 @@ class TickStream {
 
         this.ws.onopen = () => {
             console.log(`✅ Connected to Deriv ticks stream for ${this.market}`);
-            this._fetchLastTicks();
+
+            // Authorize first if token exists
+            if (this.token) {
+                this.ws.send(JSON.stringify({ authorize: this.token }));
+            } else {
+                this._fetchLastTicks(); // fallback to guest mode
+            }
         };
 
         this.ws.onmessage = (msg) => {
             const data = JSON.parse(msg.data);
+
+            if (data.error) {
+                console.error('❌ WebSocket error:', data.error.message);
+                return;
+            }
+
+            // After authorization, start fetching ticks
+            if (data.msg_type === 'authorize') {
+                console.log('🔐 Authorized as', data.authorize.loginid);
+                this._fetchLastTicks();
+            }
 
             // Handle history fetch
             if (data.msg_type === 'tick_history' && data.history) {
@@ -101,7 +124,7 @@ class TickStream {
         if (!this.container) return;
 
         this.container.innerHTML = '';
-        this.ticks.forEach((tick, i) => {
+        this.ticks.forEach((tick) => {
             const tickEl = document.createElement('div');
             tickEl.className = `
                 rounded-lg bg-gray-100 p-2 shadow-sm 
@@ -113,8 +136,8 @@ class TickStream {
     }
 }
 
-// Initialize when page is ready
-document.addEventListener('DOMContentLoaded', () => {
+// Initialize after page load
+document.addEventListener('DOMContentLoaded', async () => {
     const tickStream = new TickStream();
-    tickStream.init();
+    await tickStream.init();
 });
