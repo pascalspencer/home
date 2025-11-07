@@ -180,13 +180,39 @@ export class DerivAuthHandler {
         }
     }
 
-    async fetchDerivAccount(token) {
+    async safeConnectWebSocket(url) {
         return new Promise((resolve, reject) => {
+            let connected = false;
+            const ws = new WebSocket(url);
+            
+            const timer = setTimeout(() => {
+                if (!connected) {
+                    try { ws.close(); } catch {}
+                    reject(new Error('Connection timeout'));
+                }
+            }, 4000);
+
+            ws.onopen = () => {
+                connected = true;
+                clearTimeout(timer);
+                resolve(ws);
+            };
+
+            ws.onerror = (err) => {
+                clearTimeout(timer);
+                reject(err);
+            };
+        });
+    }
+
+
+    async fetchDerivAccount(token) {
+        return new Promise(async (resolve, reject) => {
             try {
-                const socket = new WebSocket(AUTH_CONFIG.WS_ENDPOINT);
+                const socket = await this.safeConnectWebSocket(AUTH_CONFIG.WS_ENDPOINT);
                 let resolved = false;
+                
                 socket.onopen = () => {
-                    // authorize with token
                     socket.send(JSON.stringify({ authorize: token, req_id: 'auth_1' }));
                 };
                 socket.onmessage = (e) => {
@@ -260,7 +286,8 @@ export class DerivAuthHandler {
                       }
                     }, 8000);
                   } catch (err) {
-                    reject(err);
+                    console.warn('WebSocket connection failed, retrying in 2s...', err);
+                    setTimeout(() => this.fetchDerivAccount(token).then(resolve).catch(reject), 2000);
                   }
                 });
     }
