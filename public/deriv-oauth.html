@@ -6,7 +6,7 @@
     <title>Deriv Authorization</title>
 </head>
 <body>
-    <p>Authorizing...</p>
+    <p id="authStatus">Authorizing...</p>
 
     <script>
         try {
@@ -16,14 +16,9 @@
             const token2 = urlParams.get('token2');
 
             const token = token1 || token2; // pick whichever exists
+            const authStatusElement = document.getElementById('authStatus');
 
             if (token) {
-                // Display token in the page
-                document.body.innerHTML = `
-                    <p><strong>Authorization successful!</strong></p>
-                    
-                `;
-
                 // Send token back to opener (if using popup auth)
                 if (window.opener) {
                     window.opener.postMessage({
@@ -32,12 +27,15 @@
                     }, 'https://tradealgopro.vercel.app');
                 }
                 
+                // Display authorization message after attempting to send token to opener
+                authStatusElement.innerHTML = '<strong>Authorization successful!</strong>';
+
                 // Close the window after a short delay to allow the message to be seen
                 setTimeout(() => {
                     window.close();
                 }, 3000); // Close after 3 seconds
             } else {
-                document.body.innerHTML = '<p>No token found in the URL.</p>';
+                authStatusElement.innerHTML = 'No token found in the URL.';
             }
         } catch (err) {
             console.error('Auth error:', err);
