@@ -34,8 +34,8 @@ export class DerivAuthHandler {
             // Compact display with clickable type toggle
             this.userDisplay.innerHTML = `
                 <div class="flex items-center gap-4 text-sm text-gray-700">
-                    <span><strong>ID:</strong> ${user.loginid}</span>
-                    <span><strong>Balance:</strong> ${this.formatBalance(user.balance, user.currency)}</span>
+                    <span>${user.loginid}</span>
+                    <span>${this.formatBalance(user.balance)}</span>
                     <span id="accountTypeToggle" class="cursor-pointer font-medium ${
                         user.is_virtual ? 'text-gray-600' : 'text-green-700'
                     }">
