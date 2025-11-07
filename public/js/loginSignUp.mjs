@@ -41,6 +41,7 @@ export class DerivAuthHandler {
                     }">
                         ${user.is_virtual ? 'Demo' : 'Live'}
                     </span>
+
                 </div>
             `;
 
@@ -66,29 +67,26 @@ export class DerivAuthHandler {
     async toggleAccountType() {
         const realToken = localStorage.getItem('real_token');
         const demoToken = localStorage.getItem('demo_token');
-        const currentToken = localStorage.getItem('deriv_token');
+        // const currentToken = localStorage.getItem('deriv_token');
 
-        let newToken = null;
+        const activeType = this.getActiveAccount();
+        const newType = activeType === 'real' ? 'demo' : 'real';
+        let newToken = newType === 'real' ? realToken : demoToken;
 
-        if (currentToken === realToken && demoToken) {
-            newToken = demoToken; // switch to demo
-        } else if (currentToken === demoToken && realToken) {
-            newToken = realToken; // switch to real
-        } else {
-            console.warn('No alternate account token found.');
+        if (!newToken) {
+            console.warn(`No ${newType} token found. Please log in to that account first.`);
             return;
         }
 
-        // Save and revalidate
+        // Store active type + token
+        this.saveActiveAccount(newType);
         localStorage.setItem('deriv_token', newToken);
-        const user = await this.fetchDerivAccount(newToken);
-        if (user) {
-            this.loggedInUser = user;
-            this._updateUI(user);
-        } else {
-            console.error('Failed to switch account.');
-        }
+
+        // Reload to refresh everything cleanly
+        console.log(`Switching to ${newType} account and reloading...`);
+        window.location.reload();
     }
+
 
     findAccountButton() {
         const buttons = Array.from(document.querySelectorAll('button'));
@@ -290,6 +288,14 @@ export class DerivAuthHandler {
                     setTimeout(() => this.fetchDerivAccount(token).then(resolve).catch(reject), 2000);
                   }
                 });
+    }
+
+    saveActiveAccount(type) {
+        localStorage.setItem('active_account', type);
+    }
+
+    getActiveAccount() {
+        return localStorage.getItem('active_account') || 'real';
     }
 
     applyAccountUI(user) {

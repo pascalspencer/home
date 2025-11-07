@@ -29,6 +29,15 @@ class DerivAuthService {
         if (token1) localStorage.setItem('real_token', token1);
         if (token2) localStorage.setItem('demo_token', token2);
 
+        // Check for stored active account type
+        const activeType = localStorage.getItem('active_account') || 'real';
+        const storedToken = localStorage.getItem('deriv_token');
+        if (storedToken) {
+            console.log(`Using stored ${activeType} token`);
+            await this.validateToken(storedToken);
+        }
+
+
         // Priority: token in query/hash > token1/token2 > stored token
         if (tokenFromQuery) token = tokenFromQuery;
         else if (tokenFromHash) token = tokenFromHash;
