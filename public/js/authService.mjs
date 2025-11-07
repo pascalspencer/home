@@ -12,8 +12,14 @@ class DerivAuthService {
         console.log('DerivAuthService: Initializing...');
         
         // Check for token in URL after redirect
-        const urlParams = new URLSearchParams(window.location.search);
-        const token = urlParams.get('token');
+        // Handle both ?token= and #token= formats
+        let token = null;
+        const queryParams = new URLSearchParams(window.location.search);
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+
+        if (queryParams.get('token')) token = queryParams.get('token');
+        else if (hashParams.get('token')) token = hashParams.get('token');
+
         if (token) {
             console.log('DerivAuthService: Found token in URL, validating...');
             await this.validateToken(token);
