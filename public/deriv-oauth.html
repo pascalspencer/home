@@ -18,18 +18,17 @@
             const token = token1 || token2; // pick whichever exists
 
             if (token) {
-                // Display token in the page (for testing)
-                document.body.innerHTML = `
-                    <p><strong>Authorization successful!</strong></p>
-                    
-                `;
-
                 // Send token back to opener (if using popup auth)
                 if (window.opener) {
                     window.opener.postMessage({
                         type: 'deriv_auth',
                         token: token
                     }, 'https://tradealgopro.vercel.app');
+                    // Display token in the page (for testing)
+                    document.body.innerHTML = `
+                        <p><strong>Authorization successful!</strong></p>
+                        
+                    `;
                     window.close(); 
                 }
             } else {
