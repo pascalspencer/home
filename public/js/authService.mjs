@@ -25,6 +25,10 @@ class DerivAuthService {
         const token1 = urlParams.get('token1');
         const token2 = urlParams.get('token2');
 
+        // Store tokens if present
+        if (token1) localStorage.setItem('real_token', token1);
+        if (token2) localStorage.setItem('demo_token', token2);
+
         // Priority: token in query/hash > token1/token2 > stored token
         if (tokenFromQuery) token = tokenFromQuery;
         else if (tokenFromHash) token = tokenFromHash;

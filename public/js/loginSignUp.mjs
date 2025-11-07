@@ -31,18 +31,31 @@ export class DerivAuthHandler {
         if (user) {
             this.loginBtn.innerHTML = `<i class="fas fa-sign-out-alt mr-2"></i>Logout`;
 
-            // Compact side-by-side info bar
+            // Compact display with clickable type toggle
             this.userDisplay.innerHTML = `
                 <div class="flex items-center gap-4 text-sm text-gray-700">
                     <span><strong>ID:</strong> ${user.loginid}</span>
                     <span><strong>Balance:</strong> ${this.formatBalance(user.balance, user.currency)}</span>
-                    <span><strong>Type:</strong> ${user.is_virtual ? 'Demo' : 'Real'}</span>
+                    <span id="accountTypeToggle" class="cursor-pointer font-medium ${
+                        user.is_virtual ? 'text-gray-600' : 'text-green-700'
+                    }">
+                        ${user.is_virtual ? 'Demo' : 'Live'}
+                    </span>
                 </div>
             `;
+
             this.userDisplay.classList.remove('hidden');
             this.userDisplay.style.display = 'flex';
             this.userDisplay.style.alignItems = 'center';
             this.userDisplay.style.gap = '10px';
+
+            // 🔄 Add toggle functionality
+            const typeToggle = document.getElementById('accountTypeToggle');
+            if (typeToggle) {
+                typeToggle.addEventListener('click', async () => {
+                    await this.toggleAccountType();
+                });
+            }
         } else {
             this.loginBtn.innerHTML = `<i class="fas fa-user mr-2"></i>Login`;
             this.userDisplay.innerHTML = '';
@@ -50,6 +63,32 @@ export class DerivAuthHandler {
         }
     }
 
+    async toggleAccountType() {
+        const realToken = localStorage.getItem('real_token');
+        const demoToken = localStorage.getItem('demo_token');
+        const currentToken = localStorage.getItem('deriv_token');
+
+        let newToken = null;
+
+        if (currentToken === realToken && demoToken) {
+            newToken = demoToken; // switch to demo
+        } else if (currentToken === demoToken && realToken) {
+            newToken = realToken; // switch to real
+        } else {
+            console.warn('No alternate account token found.');
+            return;
+        }
+
+        // Save and revalidate
+        localStorage.setItem('deriv_token', newToken);
+        const user = await this.fetchDerivAccount(newToken);
+        if (user) {
+            this.loggedInUser = user;
+            this._updateUI(user);
+        } else {
+            console.error('Failed to switch account.');
+        }
+    }
 
     findAccountButton() {
         const buttons = Array.from(document.querySelectorAll('button'));
