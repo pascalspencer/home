@@ -123,9 +123,10 @@
                                 <div class="w-2 h-2 bg-green-500 rounded-full pulse-animation"></div>
                                 <span class="text-green-700 text-sm font-medium">Live</span>
                             </div>
-                            <button class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
-                                <i class="fas fa-user mr-2"></i>Account
+                            <button id="accountBtn" class="bg-primary text-white px-4 py-2 rounded-lg hover:bg-secondary transition-colors">
+                                <i class="fas fa-user mr-2"></i>Login
                             </button>
+                            <div id="userDetails" class="hidden bg-white border border-gray-200 rounded-lg shadow-sm p-3 mt-2 w-60 text-sm"></div>
                         </div>
                     </div>
                 </div>
@@ -471,5 +472,14 @@
     <script type="module" src="/js/authConfig.mjs"></script>
     <script type="module" src="/js/loginSignUp.mjs"></script>
     <script type="module" src="/js/main.mjs"></script>
+    <script type="module">
+        import { DerivAuthHandler } from '/js/loginSignUp.mjs';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const authHandler = new DerivAuthHandler();
+            authHandler.init();
+        });
+    </script>
+
 </body>
 </html>

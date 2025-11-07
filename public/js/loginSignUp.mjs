@@ -5,13 +5,44 @@ export class DerivAuthHandler {
     constructor() {
         this.loggedInUser = null;
         this.ws = null;
+        this.loginBtn = null;
+        this.userDisplay = null;
         this.authListeners = new Set();
     }
 
     init() {
-        // No longer listening for messages from a popup, as we are redirecting
-        this.renderAccountButton();
-        // The token is now handled by authService.mjs directly from the URL or localStorage
+        this.loginBtn = document.getElementById('accountBtn');
+        this.userDisplay = document.getElementById('userDetails');
+
+        authService.onAuthChange((user) => this._updateUI(user));
+        authService.init();
+
+        if (this.loginBtn) {
+            this.loginBtn.addEventListener('click', () => {
+                if (authService.user) {
+                    authService.logout();
+                } else {
+                    authService.login();
+                }
+            });
+        }
+    }
+    _updateUI(user) {
+        if (user) {
+            this.loginBtn.innerHTML = `<i class="fas fa-sign-out-alt mr-2"></i>Logout`;
+            this.userDisplay.innerHTML = `
+                <div class="text-sm text-gray-700">
+                    <p><strong>ID:</strong> ${user.loginid}</p>
+                    <p><strong>Email:</strong> ${user.email}</p>
+                    <p><strong>Balance:</strong> ${user.balance} ${user.currency}</p>
+                    <p><strong>Type:</strong> ${user.is_virtual ? 'Demo' : 'Real'}</p>
+                </div>`;
+            this.userDisplay.classList.remove('hidden');
+        } else {
+            this.loginBtn.innerHTML = `<i class="fas fa-user mr-2"></i>Login`;
+            this.userDisplay.innerHTML = '';
+            this.userDisplay.classList.add('hidden');
+        }
     }
 
     findAccountButton() {
