@@ -10,23 +10,37 @@ class DerivAuthService {
 
     async init() {
         console.log('DerivAuthService: Initializing...');
-        
-        // Check for token in URL after redirect
-        // Handle both ?token= and #token= formats
+
         let token = null;
-        const queryParams = new URLSearchParams(window.location.search);
+
+        // Parse query params from URL
+        const urlParams = new URLSearchParams(window.location.search);
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
 
-        if (queryParams.get('token')) token = queryParams.get('token');
-        else if (hashParams.get('token')) token = hashParams.get('token');
+        // Handle multiple possible token formats
+        const tokenFromQuery = urlParams.get('token');
+        const tokenFromHash = hashParams.get('token');
+
+        // Handle multi-account Deriv redirects (token1/token2)
+        const token1 = urlParams.get('token1');
+        const token2 = urlParams.get('token2');
+
+        // Priority: token in query/hash > token1/token2 > stored token
+        if (tokenFromQuery) token = tokenFromQuery;
+        else if (tokenFromHash) token = tokenFromHash;
+        else if (token1 || token2) {
+            console.log('DerivAuthService: Found multiple tokens, validating both...');
+            const validToken = await this._validateMultipleTokens([token1, token2]);
+            token = validToken;
+        }
 
         if (token) {
-            console.log('DerivAuthService: Found token in URL, validating...');
+            console.log('DerivAuthService: Valid token found, validating...');
             await this.validateToken(token);
-            // Clear token from URL to prevent re-processing on refresh
+            // Clean URL
             window.history.replaceState({}, document.title, window.location.pathname);
         } else {
-            // Check for stored token
+            // Check localStorage as fallback
             const storedToken = localStorage.getItem('deriv_token');
             if (storedToken) {
                 console.log('DerivAuthService: Found stored token, validating...');
@@ -36,6 +50,28 @@ class DerivAuthService {
             }
         }
     }
+    async _validateMultipleTokens(tokens) {
+        for (const token of tokens) {
+            if (!token) continue;
+            try {
+                const user = await this._fetchUserDetails(token);
+                if (user) {
+                    console.log(`DerivAuthService: Token for ${user.loginid} is valid.`);
+                    localStorage.setItem('deriv_token', token);
+                    this.token = token;
+                    this.user = user;
+                    this._notifyListeners();
+                    return token;
+                }
+            } catch (e) {
+                console.warn('DerivAuthService: Token invalid:', e);
+            }
+        }
+        console.error('DerivAuthService: No valid tokens found.');
+        return null;
+    }
+
+
 
     async login() {
         console.log('DerivAuthService: Redirecting to Deriv login page.');
