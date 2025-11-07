@@ -30,20 +30,26 @@ export class DerivAuthHandler {
     _updateUI(user) {
         if (user) {
             this.loginBtn.innerHTML = `<i class="fas fa-sign-out-alt mr-2"></i>Logout`;
+
+            // Compact side-by-side info bar
             this.userDisplay.innerHTML = `
-                <div class="text-sm text-gray-700">
-                    <p><strong>ID:</strong> ${user.loginid}</p>
-                    <p><strong>Email:</strong> ${user.email}</p>
-                    <p><strong>Balance:</strong> ${user.balance} ${user.currency}</p>
-                    <p><strong>Type:</strong> ${user.is_virtual ? 'Demo' : 'Real'}</p>
-                </div>`;
+                <div class="flex items-center gap-4 text-sm text-gray-700">
+                    <span><strong>ID:</strong> ${user.loginid}</span>
+                    <span><strong>Balance:</strong> ${this.formatBalance(user.balance, user.currency)}</span>
+                    <span><strong>Type:</strong> ${user.is_virtual ? 'Demo' : 'Real'}</span>
+                </div>
+            `;
             this.userDisplay.classList.remove('hidden');
+            this.userDisplay.style.display = 'flex';
+            this.userDisplay.style.alignItems = 'center';
+            this.userDisplay.style.gap = '10px';
         } else {
             this.loginBtn.innerHTML = `<i class="fas fa-user mr-2"></i>Login`;
             this.userDisplay.innerHTML = '';
             this.userDisplay.classList.add('hidden');
         }
     }
+
 
     findAccountButton() {
         const buttons = Array.from(document.querySelectorAll('button'));
